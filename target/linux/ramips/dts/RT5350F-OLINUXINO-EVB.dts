@@ -29,4 +29,49 @@
 			gpios = <&gpio0 0 GPIO_ACTIVE_LOW>;
 		};
 	};
+
+	lcd {
+		compatible = "hit,hd44780";
+		display-height-chars = <4>;
+		display-width-chars = <20>;
+		rs-gpios = <&pcf8574 0 GPIO_ACTIVE_HIGH>;
+		rw-gpios = <&pcf8574 1 GPIO_ACTIVE_HIGH>;
+		enable-gpios = <&pcf8574 2 GPIO_ACTIVE_HIGH>;
+		backlight-gpios = <&pcf8574 3 GPIO_ACTIVE_HIGH>;
+		data-gpios = <&pcf8574 4 GPIO_ACTIVE_HIGH>,
+			     <&pcf8574 5 GPIO_ACTIVE_HIGH>,
+			     <&pcf8574 6 GPIO_ACTIVE_HIGH>,
+			     <&pcf8574 7 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&i2c {
+	clock-frequency = <50000>;
+
+	t6700@15 {
+		reg = <0x15>;
+		status = "disabled";
+	};
+
+	pcf8574: pcf8574@3f {
+		compatible = "nxp,pcf8574a";
+		reg = <0x3f>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+
+	htu21d@40 {
+		compatible = "meas,htu21";
+		reg = <0x40>;
+	};
+
+	adt7420@48 {
+		compatible = "adt7420";
+		reg = <0x48>;
+	};
+
+	ads1115@49 {
+		compatible = "ti,ads1115";
+		reg = <0x49>;
+	};
 };
