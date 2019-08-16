@@ -4,11 +4,13 @@ import sys, os, os.path, signal
 #from smbus import SMBus
 from time import time, sleep, strftime
 from fcntl import ioctl
+from threading import Thread
 
 defaults = {
 	"ttemp" :	0.,
 	"thyst" :	0.5,
 	"heat" :	"/sys/class/gpio/relay1/value",
+	"rel2" :	"/sys/class/gpio/relay2/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
 	"errfn" :	"/tmp/main.err",
@@ -204,10 +206,32 @@ def sdump(log, kk, sv):
 	log.write("\t".join(map(lambda k: str(sv[k]), kk)))
 	log.write("\n")
 
+def i2c_reset():
+	pass
+
+def watchdog():
+	global heat, tstamp
+	rep = 0
+	while run:
+		if time() - tstamp > 10:
+			heat.set(0)
+			if not rep:
+				sys.stderr.write(hts() + ": main thread hanged\n")
+				rep = 1
+				i2c_reset()
+		else:
+			if rep:
+				sys.stderr.write(hts() + ": main thread is running\n")
+				rep = 0
+		sleep(1)
+
 def main(cfg):
-	global ttemp, thyst, heat
+	global ttemp, thyst, heat, tstamp
 
 	lcd = clcd(cfg["lcdw"], cfg["lcdh"]) if cfg["lcd"] else None
+
+	wdt = Thread(target = watchdog)
+	wdt.start()
 
 	sens = {
 		"ta" : insysfs(cfg["temp_adt"], 1e-3, "Ta", "C", 1),
@@ -225,11 +249,13 @@ def main(cfg):
 	log_header(log, logk, sens)
 
 	while run:
+		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
 		tstat(sv, heat)
 		lcd_upd(lcd, sv)
 		sdump(log, logk, sv)
 		sleep(1)
+	wdt.join(1)
 
 def parse_cmdline(cfg):
 	for arg in sys.argv[1:]:
