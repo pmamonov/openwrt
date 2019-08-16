@@ -6,6 +6,9 @@ from time import time, sleep, strftime
 from fcntl import ioctl
 
 defaults = {
+	"ttemp" :	0.,
+	"thyst" :	0.5,
+	"heat" :	"/sys/class/gpio/relay1/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
 	"errfn" :	"/tmp/main.err",
@@ -34,6 +37,20 @@ class gpio1(object):
 	def set(self, v):
 		with open(self.val, "w") as f:
 			f.write("1" if v else "0")
+
+def tstat(sv, heat):
+	global ttemp, thyst
+
+	t = sv["ta"].val
+
+	if t < 0:
+		heat.set(0)
+		return
+
+	if t - ttemp < -thyst:
+		heat.set(1)
+	elif t - ttemp > 0:
+		heat.set(0)
 
 class sensval:
 	def __init__(self, val, label, units, prec):
@@ -188,6 +205,8 @@ def sdump(log, kk, sv):
 	log.write("\n")
 
 def main(cfg):
+	global ttemp, thyst, heat
+
 	lcd = clcd(cfg["lcdw"], cfg["lcdh"]) if cfg["lcd"] else None
 
 	sens = {
@@ -198,12 +217,16 @@ def main(cfg):
 		"co2" : t6700(cfg["co2_bus"], cfg["co2_addr"]),
 	}
 
+	ttemp = cfg["ttemp"]
+	thyst = cfg["thyst"]
+
 	logk = sens.keys()
 	log = open(cfg["logfn"], "a") if cfg["logfn"] else None
 	log_header(log, logk, sens)
 
 	while run:
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
+		tstat(sv, heat)
 		lcd_upd(lcd, sv)
 		sdump(log, logk, sv)
 		sleep(1)
@@ -223,13 +246,17 @@ def parse_cmdline(cfg):
 	return cfg
 
 def quit(sig, fr):
-	global run
+	global run, heat
 	run = 0
+	heat.set(0)
 	if sig == signal.SIGTERM:
 		sys.stderr.write(hts() + ": SIGTERM\n")
 
 if __name__ == "__main__":
+	global heat
 	cfg = parse_cmdline(defaults)
+
+	heat = gpio1(cfg["heat"])
 
 	if cfg["detach"]:
 		daemonize(cfg["errfn"])
