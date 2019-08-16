@@ -11,6 +11,7 @@ defaults = {
 	"thyst" :	0.5,
 	"heat" :	"/sys/class/gpio/relay1/value",
 	"rel2" :	"/sys/class/gpio/relay2/value",
+	"button" :	"/sys/class/gpio/button/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
 	"errfn" :	"/tmp/main.err",
@@ -233,6 +234,8 @@ def main(cfg):
 	wdt = Thread(target = watchdog)
 	wdt.start()
 
+	button = gpio1(cfg["button"])
+
 	sens = {
 		"ta" : insysfs(cfg["temp_adt"], 1e-3, "Ta", "C", 1),
 		"th" : insysfs(cfg["temp_htu"], 1e-3, "Th", "C", 1),
@@ -252,6 +255,8 @@ def main(cfg):
 		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
 		tstat(sv, heat)
+		if button.get():
+			lcd.init()
 		lcd_upd(lcd, sv)
 		sdump(log, logk, sv)
 		sleep(1)
