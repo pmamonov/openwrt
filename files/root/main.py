@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import sys, os, os.path, signal
+import sys, os, os.path, signal, socket
 #from smbus import SMBus
 from time import time, sleep, strftime
 from fcntl import ioctl
@@ -225,14 +225,133 @@ def watchdog():
 				sys.stderr.write(hts() + ": main thread is running\n")
 				rep = 0
 		sleep(1)
+class http_serv:
+	def __init__(self, cfg):
+		self.cfg = cfg
+
+	def http_frame(self):
+		return '''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
+"http://www.w3.org/TR/html4/frameset.dtd">
+<html>
+<frameset rows="50%, 50%">
+<frame src="/sens">
+<frame src="/ctl">
+</frameset>
+</html>
+'''
+
+	def http_sens(self):
+		global sv, tstamp
+
+		r = '''<html>
+<head><meta http-equiv="refresh" content="2"></head>
+<body bgcolor="#bae99b">
+'''
+		r += "<h1>" + hts() + "</h1>"
+		r += '<table style="width: 100%; font-size: 150%"><tr><td>'
+
+		if sv:
+			r += "</td><td>".join(map(lambda k: "%s,%s" % (sv[k].label, sv[k].units), sv))
+			r += "</td></tr><tr><td>"
+			r += "</td><td>".join(map(lambda k: str(sv[k]), sv))
+		else:
+			r += "N/A"
+
+		r += "</td></tr></table>"
+		r += "<h3>Thermostat: %.1fC, " % ttemp
+		r += "Heat: %d, " % heat.get()
+		r += "ts: %d</h3>" % (tstamp - time())
+		r += "<body></html>"
+		return r
+
+	def http_cmd(self, a):
+		global ttemp
+
+		w = a.split("=")
+		if w[0] == "ttemp":
+			try:
+				ttemp = float(w[1])
+			except:
+				pass
+
+	def http_ctl(self, args):
+		if args:
+			for a in args.split("&"):
+				if a:
+					self.http_cmd(a)
+
+		return '''<html><body bgcolor="#faf296">
+<form action="/ctl" method="get" style="font-size: 150%">
+Thermostat: <input type="number" name=ttemp>
+<input type="submit" value="OK">
+</form>
+<h3><a href="/err">/err</a></h3>
+</body></html>'''
+
+	def http_re(self, url):
+		w = url.split("?")
+		p = w[0]
+		c = None
+		if len(w) > 1:
+			c = w[1]
+		if p == "/sens":
+			return self.http_sens()
+		elif p == "/ctl":
+			return self.http_ctl(c)
+		elif p == "/err":
+			with open(self.cfg["errfn"]) as f:
+				return ("<html><body><pre>" +
+					f.read() +
+					"</pre></body></html>")
+		else:
+			return self.http_frame()
+
+	def main(self):
+		sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		sk.bind(("", 80))
+		sk.listen(10)
+		sk.settimeout(1)
+		while run:
+			con = None
+			url = ""
+			try:
+				con, addr = sk.accept()
+				r = con.recv(1024)
+			except:
+				if con:
+					con.close()
+				continue
+			for h in r.split("\r\n"):
+				w = h.split()
+				if len(w) != 3:
+					continue
+				if w[0] == "GET":
+					url = w[1]
+			re = self.http_re(url)
+			rh = "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n" % len(re)
+			try:
+				con.send(rh + re)
+			except:
+				pass
+			finally:
+				con.close()
+		sk.close()
 
 def main(cfg):
-	global ttemp, thyst, heat, tstamp
+	global ttemp, thyst, heat, tstamp, sv
+
+	sv = None
+
+	tstamp = time()
 
 	lcd = clcd(cfg["lcdw"], cfg["lcdh"]) if cfg["lcd"] else None
 
 	wdt = Thread(target = watchdog)
 	wdt.start()
+	http = http_serv(cfg)
+	http = Thread(target = http.main)
+	http.start()
 
 	button = gpio1(cfg["button"])
 
@@ -261,6 +380,7 @@ def main(cfg):
 		sdump(log, logk, sv)
 		sleep(1)
 	wdt.join(1)
+	http.join(1)
 
 def parse_cmdline(cfg):
 	for arg in sys.argv[1:]:
