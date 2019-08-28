@@ -110,12 +110,16 @@ class t6700(sensor):
 
 	def raw(self):
 		fd = os.open(self.cdev, os.O_RDWR)
-		ioctl(fd, I2C_SLAVE, self.addr)
-		os.write(fd, "".join(map(chr, (0x04, 0x13, 0x8b, 0x00, 0x01))))
-		sleep(0.01)
-		r = os.read(fd, 4)
-		os.close(fd)
-		return ord(r[3]) | (ord(r[2]) << 8)
+		try:
+			ioctl(fd, I2C_SLAVE, self.addr)
+			os.write(fd, "".join(map(chr, (0x04, 0x13, 0x8b, 0x00, 0x01))))
+			sleep(0.01)
+			r = os.read(fd, 4)
+			return ord(r[3]) | (ord(r[2]) << 8)
+		except Exception as e:
+			raise NameError, str(e)
+		finally:
+			os.close(fd)
 
 LCD_ESC = "\033["
 class clcd:
