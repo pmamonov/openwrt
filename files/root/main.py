@@ -50,10 +50,12 @@ def tstat(sv, heat):
 		heat.set(0)
 		return
 
-	if t - ttemp < -thyst:
+	if t - ttemp <= -thyst:
 		heat.set(1)
-	elif t - ttemp > 0:
+		return
+	if t - ttemp >= 0:
 		heat.set(0)
+		return
 
 class sensval:
 	def __init__(self, val, label, units, prec):
