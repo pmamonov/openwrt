@@ -395,7 +395,10 @@ def parse_cmdline(cfg):
 			try:
 				v = int(r[1], 0)
 			except:
-				v = r[1]
+				try:
+					v = float(r[1])
+				except:
+					v = r[1]
 		cfg[k] = v
 	print cfg
 	return cfg
