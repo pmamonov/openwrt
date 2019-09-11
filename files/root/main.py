@@ -271,7 +271,7 @@ class http_serv:
 		return r
 
 	def http_cmd(self, a):
-		global ttemp
+		global ttemp, log_en
 
 		w = a.split("=")
 		if w[0] == "ttemp":
@@ -279,39 +279,87 @@ class http_serv:
 				ttemp = float(w[1])
 			except:
 				pass
+		elif w[0] == "log":
+			try:
+				log_en = int(w[1])
+			except:
+				pass
 
 	def http_ctl(self, args):
+		global log_en
 		if args:
 			for a in args.split("&"):
 				if a:
 					self.http_cmd(a)
 
-		return '''<html><body bgcolor="#faf296">
+		r = '<html><body bgcolor="#faf296">'
+		r += '''
 <form action="/ctl" method="get" style="font-size: 150%">
 Thermostat: <input type="number" name=ttemp>
 <input type="submit" value="OK">
-</form>
-<h3><a href="/err">/err</a></h3>
-</body></html>'''
+</form>'''
+		r += '<table><tr><td><h3><a href="/sens.csv" target="_blank">Download sensors data</a></h3></td>'
+		if log_en:
+			r += '''<td>
+<form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="log" value="0">
+<input type="submit" value="Stop">
+</form></td>'''
+		else:
+			r += '''<td>
+<form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="log" value="1">
+<input type="submit" value="Overwrite">
+</form></td>
+<td><form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="log" value="2">
+<input type="submit" value="Append">
+</form></td>'''
+		r += "</tr></table>"
 
-	def http_re(self, url):
-		w = url.split("?")
-		p = w[0]
-		c = None
-		if len(w) > 1:
-			c = w[1]
+		r += '<h3><a href="/err" target="_blank">/err</a></h3>'
+		r += "</body></html>"
+		return r
+
+	def html(self, p, c):
 		if p == "/sens":
-			return self.http_sens()
+			re = self.http_sens()
 		elif p == "/ctl":
-			return self.http_ctl(c)
+			re = self.http_ctl(c)
 		elif p == "/err":
 			with open(self.cfg["errfn"]) as f:
-				return ("<html><body><pre>" +
+				re = ("<html><body><pre>" +
 					f.read() +
 					"</pre></body></html>")
 		else:
-			return self.http_frame()
+			re = self.http_frame()
 
+		rh = "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n" % len(re)
+		self.send(rh + re)
+
+	def send(self, msg):
+		try:
+			self.con.send(msg)
+			return 0
+		except:
+			return -1
+
+	def sendfile(self, fn, fmt = "text/csv"):
+		msz = 4 << 10
+
+		if not fn or not os.path.isfile(fn):
+			self.send("HTTP/1.1 404 Not Found\r\n\r\n404 Not Found")
+			return
+		sz = os.path.getsize(fn)
+		if self.send("HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n" % (sz, fmt)):
+			return
+		with open(fn) as f:
+			while 1:
+				d = f.read(msz)
+				if not d:
+					break
+				if self.send(d):
+					break
 	def main(self):
 		sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -328,20 +376,24 @@ Thermostat: <input type="number" name=ttemp>
 				if con:
 					con.close()
 				continue
+			self.con = con
+			url = None
 			for h in r.split("\r\n"):
 				w = h.split()
 				if len(w) != 3:
 					continue
 				if w[0] == "GET":
 					url = w[1]
-			re = self.http_re(url)
-			rh = "HTTP/1.1 200 OK\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n" % len(re)
-			try:
-				con.send(rh + re)
-			except:
-				pass
-			finally:
+			if not url:
 				con.close()
+				continue
+			w = url.split("?")
+			p = w[0]
+			if p == "/sens.csv":
+				self.sendfile(self.cfg["logfn"])
+			else:
+				self.html(p, w[1] if len(w) > 1 else None)
+			con.close()
 		sk.close()
 
 def main(cfg):
