@@ -5,6 +5,7 @@ import sys, os, os.path, signal, socket
 from time import time, sleep, strftime
 from fcntl import ioctl
 from threading import Thread
+from traceback import print_stack
 
 defaults = {
 	"ttemp" :	0.,
@@ -284,6 +285,8 @@ class http_serv:
 				log_en = int(w[1])
 			except:
 				pass
+		elif w[0] == "threads":
+			dump_threads()
 
 	def http_ctl(self, args):
 		global log_en
@@ -317,7 +320,13 @@ Thermostat: <input type="number" name=ttemp>
 </form></td>'''
 		r += "</tr></table>"
 
-		r += '<h3><a href="/err" target="_blank">/err</a></h3>'
+		r += ''
+		r += '''<table><tr><td>
+<h3><a href="/err" target="_blank">Error log</a></h3></td>
+<td><form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="threads" value="1">
+<input type="submit" value="Dump threads"></td>
+</tr></form>'''
 		r += "</body></html>"
 		return r
 
@@ -368,7 +377,6 @@ Thermostat: <input type="number" name=ttemp>
 		sk.settimeout(1)
 		while run:
 			con = None
-			url = ""
 			try:
 				con, addr = sk.accept()
 				r = con.recv(1024)
@@ -405,10 +413,6 @@ def main(cfg):
 
 	lcd = clcd(cfg["lcdw"], cfg["lcdh"]) if cfg["lcd"] else None
 
-	http = http_serv(cfg)
-	http = Thread(target = http.main)
-	http.start()
-
 	button = gpio1(cfg["button"])
 
 	sens = {
@@ -425,6 +429,10 @@ def main(cfg):
 	log_en = 0
 	log = None
 	logk = sens.keys()
+
+	http = http_serv(cfg)
+	http = Thread(target = http.main)
+	http.start()
 
 	wdt = Thread(target = watchdog)
 	wdt.start()
