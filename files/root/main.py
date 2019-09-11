@@ -15,7 +15,7 @@ defaults = {
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
 	"errfn" :	"/tmp/main.err",
-	"logfn" :	None,
+	"logfn" :	"/tmp/sens.log",
 	"temp_adt" :	"/sys/bus/i2c/devices/0-0048/temp1_input",
 	"temp_htu" :	"/sys/bus/i2c/devices/0-0040/iio:device0/in_temp_input",
 	"rh_htu" :	"/sys/bus/i2c/devices/0-0040/iio:device0/in_humidityrelative_input",
@@ -397,7 +397,7 @@ Thermostat: <input type="number" name=ttemp>
 		sk.close()
 
 def main(cfg):
-	global ttemp, thyst, heat, tstamp, sv
+	global ttemp, thyst, heat, tstamp, sv, log_en
 
 	sv = None
 
@@ -424,9 +424,9 @@ def main(cfg):
 	ttemp = cfg["ttemp"]
 	thyst = cfg["thyst"]
 
+	log_en = 0
+	log = None
 	logk = sens.keys()
-	log = open(cfg["logfn"], "a") if cfg["logfn"] else None
-	log_header(log, logk, sens)
 
 	while run:
 		tstamp = time()
@@ -435,7 +435,15 @@ def main(cfg):
 		if button.get():
 			lcd.init()
 		lcd_upd(lcd, sv)
+
+		if log_en and not log and cfg["logfn"]:
+			log = open(cfg["logfn"], "w" if log_en == 1 else "a")
+			log_header(log, logk, sens)
+		if not log_en and log:
+			log.close()
+			log = None
 		sdump(log, logk, sv)
+
 		sleep(1)
 	wdt.join(1)
 	http.join(1)
