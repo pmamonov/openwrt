@@ -405,8 +405,6 @@ def main(cfg):
 
 	lcd = clcd(cfg["lcdw"], cfg["lcdh"]) if cfg["lcd"] else None
 
-	wdt = Thread(target = watchdog)
-	wdt.start()
 	http = http_serv(cfg)
 	http = Thread(target = http.main)
 	http.start()
@@ -427,6 +425,9 @@ def main(cfg):
 	log_en = 0
 	log = None
 	logk = sens.keys()
+
+	wdt = Thread(target = watchdog)
+	wdt.start()
 
 	while run:
 		tstamp = time()
