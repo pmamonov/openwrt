@@ -9,7 +9,7 @@ from traceback import print_stack
 
 defaults = {
 	"ttemp" :	0.,
-	"thyst" :	0.1,
+	"thyst" :	0.5,
 	"heat" :	"/sys/class/gpio/relay1/value",
 	"rel2" :	"/sys/class/gpio/relay2/value",
 	"button" :	"/sys/class/gpio/button/value",
