@@ -298,7 +298,7 @@ class http_serv:
 		r = '<html><body bgcolor="#faf296">'
 		r += '''
 <form action="/ctl" method="get" style="font-size: 150%">
-Thermostat: <input type="number" name=ttemp>
+Thermostat: <input type="number" step="0.1" name=ttemp>
 <input type="submit" value="OK">
 </form>'''
 		r += '<table><tr><td><h3><a href="/sens.csv" target="_blank">Download sensors data</a></h3></td>'
