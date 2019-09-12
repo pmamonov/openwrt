@@ -370,6 +370,7 @@ Thermostat: <input type="number" name=ttemp>
 				if self.send(d):
 					break
 	def main(self):
+		global log
 		sk = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		sk.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		sk.bind(("", 80))
@@ -398,6 +399,8 @@ Thermostat: <input type="number" name=ttemp>
 			w = url.split("?")
 			p = w[0]
 			if p == "/sens.csv":
+				if type(log) is file:
+					log.flush()
 				self.sendfile(self.cfg["logfn"])
 			else:
 				self.html(p, w[1] if len(w) > 1 else None)
@@ -405,7 +408,7 @@ Thermostat: <input type="number" name=ttemp>
 		sk.close()
 
 def main(cfg):
-	global ttemp, thyst, heat, tstamp, sv, log_en
+	global ttemp, thyst, heat, tstamp, sv, log_en, log
 
 	sv = None
 
