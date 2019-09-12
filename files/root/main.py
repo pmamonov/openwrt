@@ -9,7 +9,7 @@ from traceback import print_stack
 
 defaults = {
 	"ttemp" :	0.,
-	"thyst" :	0.5,
+	"thyst" :	0.1,
 	"heat" :	"/sys/class/gpio/relay1/value",
 	"rel2" :	"/sys/class/gpio/relay2/value",
 	"button" :	"/sys/class/gpio/button/value",
@@ -474,6 +474,12 @@ def parse_cmdline(cfg):
 	print cfg
 	return cfg
 
+def dump_threads(sig=0, fr=None):
+	sys.stderr.write("\n%s: Threads stack\n" % hts())
+	for i, t in sys._current_frames().items():
+		sys.stderr.write("\n%d\n" % i)
+		print_stack(t)
+
 def quit(sig, fr):
 	global run, heat
 	run = 0
@@ -495,6 +501,7 @@ if __name__ == "__main__":
 			f.write("%d" % os.getpid())
 
 	signal.signal(signal.SIGTERM, quit)
+	signal.signal(signal.SIGUSR1, dump_threads)
 
 	try:
 		sys.stderr.write(hts() + ": START\n")
