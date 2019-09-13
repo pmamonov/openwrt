@@ -45,23 +45,32 @@ class gpio1(object):
 class tstat:
 	def __init__(self, heat, temp, hyst):
 		self.heat = heat
-		self.temp = temp
 		self.hyst = hyst
 		self.off = 0
 		self.ts = 0
 		self.ns = 0
+		self.av = 0
 		self.st = hyst * 0.1
-		self.skip_cycle = 2
 		self.cycle = 0
+		self.set(temp)
+
+	def set(self, t):
+		self.skip_cycle = 2
+		if self.heat.get():
+			self.skip_cycle = 1
+		self.temp = t
+		self.off = 0
 
 	def tstat(self, t):
-		global tav, toff
 		self.ns += 1
 		self.ts += t
 
 		if t < 0:
 			heat.set(0)
 			return
+
+		if self.skip_cycle == 2 and t - self.temp >= -self.hyst:
+			self.skip_cycle = 1
 
 		if t + self.off - self.temp <= -self.hyst and not self.heat.get() and self.cycle:
 			self.cycle = 0
@@ -467,7 +476,7 @@ def main(cfg):
 		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
 		if ttemp != ts.temp:
-			ts = tstat(heat, ttemp, thyst)
+			ts.set(ttemp)
 		ts.tstat(sv["ta"].val)
 		if button.get():
 			lcd.init()
