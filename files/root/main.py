@@ -26,6 +26,8 @@ defaults = {
 	"lcd" :		True,
 	"lcdw" :	20,
 	"lcdh" :	4,
+	"avper":	10,
+	"avn":		400,
 }
 
 run = 1
@@ -262,10 +264,42 @@ def watchdog():
 				sys.stderr.write(hts() + ": main thread is running\n")
 				rep = 0
 		sleep(1)
+
+def plot_ascii(d):
+	r = "<pre>"
+	t0 = int(min(d))
+	t1 = 1 + int(max(d))
+	for i in range(t1, t0 - 1, -1):
+		r += "\n%d " % i
+		r += "".join(map(lambda t, i=i: "X" if t >= i and t < i+1 else '.', d))
+	r += "</pre>"
+	return r
+
+def plot_svg(d, w, h, per):
+	r = '<svg width="%d" height="%d">' % (w, h)
+	t0 = int(min(d))
+	t1 = 1 + int(max(d))
+	ys = float(h) / (t1 - t0)
+	xs = float(w) / len(d)
+	for i in range(0, len(d), 5 * 60 / per):
+		r += '<text x="%d" y="%d">-%d</text>' % (w - i * xs, h, per * i / 60.)
+	for i in range(t0, t1):
+		y = h - ys * (i - t0)
+		r += '<text x="0" y="%d">%d</text>' % (y, i)
+		r += '<line x1="%d" y1="%d" x2="%d" y2="%d" ' % (0, y, w, y)
+		r += 'style="stroke:black;stroke-width:1"/>'
+	r += '<polyline style="fill:none;stroke:blue;stroke-width:2" points="'
+	for i in range(len(d)):
+		r += '%d,%d ' % (int(xs * i), int(h - ys * (d[i] - t0)))
+	r += '">'
+	r += "</svg>"
+	return r
+
 class http_serv:
-	def __init__(self, cfg, ts):
+	def __init__(self, cfg, ts, mlog):
 		self.cfg = cfg
 		self.tstat = ts
+		self.mlog = mlog
 
 	def http_frame(self):
 		return '''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
@@ -303,6 +337,10 @@ class http_serv:
 		r += "Toff: %.2f, " % self.tstat.off
 		r += "sk_cyc: %d, " % self.tstat.skip_cycle
 		r += "ts: %d</h3>" % (tstamp - time())
+
+		if len(self.mlog):
+			r += "<hr>"
+			r += plot_svg(self.mlog, 800, 400, self.cfg['avper'])
 		r += "<body></html>"
 		return r
 
@@ -469,7 +507,13 @@ def main(cfg):
 	log = None
 	logk = sens.keys()
 
-	http = http_serv(cfg, ts)
+	avt = 0
+	avn = 0
+	avper = cfg["avper"]
+	avstart = time()
+	ml = []
+
+	http = http_serv(cfg, ts, ml)
 	http = Thread(target = http.main)
 	http.start()
 
@@ -480,6 +524,16 @@ def main(cfg):
 	while run:
 		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
+
+		avt += sv["ta"].val
+		avn += 1
+		if time() - avstart >= avper:
+			avstart += avper
+			ml.append(avt / avn)
+			while len(ml) > cfg["avn"]:
+				ml.pop(0)
+			avt, avn = 0, 0
+
 		if ttemp != ts.temp:
 			ts.set(ttemp)
 		ts.tstat(sv["ta"].val)
