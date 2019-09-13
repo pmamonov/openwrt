@@ -440,7 +440,7 @@ def main(cfg):
 	button = gpio1(cfg["button"])
 
 	sens = {
-		"ta" : insysfs(cfg["temp_adt"], 1e-3, "Ta", "C", 1),
+		"ta" : insysfs(cfg["temp_adt"], 1e-3, "Ta", "C", 2),
 		"th" : insysfs(cfg["temp_htu"], 1e-3, "Th", "C", 1),
 		"rh" : insysfs(cfg["rh_htu"], 1e-3, "RH", "%", 0),
 		"o2" : insysfs(cfg["o2"], 1., "O2", "mV", 0),
