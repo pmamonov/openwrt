@@ -263,8 +263,9 @@ def watchdog():
 				rep = 0
 		sleep(1)
 class http_serv:
-	def __init__(self, cfg):
+	def __init__(self, cfg, ts):
 		self.cfg = cfg
+		self.tstat = ts
 
 	def http_frame(self):
 		return '''<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
@@ -297,6 +298,10 @@ class http_serv:
 		r += "</td></tr></table>"
 		r += "<h3>Thermostat: %.1fC, " % ttemp
 		r += "Heat: %d, " % heat.get()
+		r += "Thyst: %.2f, " % self.tstat.hyst
+		r += "Tav: %.2f, " % self.tstat.av
+		r += "Toff: %.2f, " % self.tstat.off
+		r += "sk_cyc: %d, " % self.tstat.skip_cycle
 		r += "ts: %d</h3>" % (tstamp - time())
 		r += "<body></html>"
 		return r
@@ -464,7 +469,7 @@ def main(cfg):
 	log = None
 	logk = sens.keys()
 
-	http = http_serv(cfg)
+	http = http_serv(cfg, ts)
 	http = Thread(target = http.main)
 	http.start()
 
