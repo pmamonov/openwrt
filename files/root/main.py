@@ -493,7 +493,7 @@ def main(cfg):
 
 	sens = {
 		"ta" : insysfs(cfg["temp_adt"], 1e-3, "Ta", "C", 2),
-		"th" : insysfs(cfg["temp_htu"], 1e-3, "Th", "C", 1),
+		"th" : insysfs(cfg["temp_htu"], 1e-3, "Th", "C", 2),
 		"rh" : insysfs(cfg["rh_htu"], 1e-3, "RH", "%", 0),
 		"o2" : insysfs(cfg["o2"], 1., "O2", "mV", 0),
 		"co2" : t6700(cfg["co2_bus"], cfg["co2_addr"]),
@@ -525,7 +525,7 @@ def main(cfg):
 		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
 
-		avt += sv["ta"].val
+		avt += sv["th"].val
 		avn += 1
 		if time() - avstart >= avper:
 			avstart += avper
@@ -536,7 +536,7 @@ def main(cfg):
 
 		if ttemp != ts.temp:
 			ts.set(ttemp)
-		ts.tstat(sv["ta"].val)
+		ts.tstat(sv["th"].val)
 		if button.get():
 			lcd.init()
 		lcd_upd(lcd, sv)
