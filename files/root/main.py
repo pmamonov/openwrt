@@ -275,23 +275,30 @@ def plot_ascii(d):
 	r += "</pre>"
 	return r
 
-def plot_svg(d, w, h, per):
+def plot_svg(xy, w, h):
+	m = .025 * w
 	r = '<svg width="%d" height="%d">' % (w, h)
-	t0 = int(min(d))
-	t1 = 1 + int(max(d))
-	ys = float(h) / (t1 - t0)
-	xs = float(w) / len(d)
-	for i in range(0, len(d), 5 * 60 / per):
-		r += '<text x="%d" y="%d">-%d</text>' % (w - i * xs, h, per * i / 60.)
-	for i in range(t0, t1):
-		y = h - ys * (i - t0)
-		r += '<text x="0" y="%d">%d</text>' % (y, i)
-		r += '<line x1="%d" y1="%d" x2="%d" y2="%d" ' % (0, y, w, y)
+	x0 = int(min(xy, key=lambda xy: xy[0])[0])
+	x1 = 1 + int(max(xy, key=lambda xy: xy[0])[0])
+	y0 = int(min(xy, key=lambda xy: xy[1])[1])
+	y1 = 1 + int(max(xy, key=lambda xy: xy[1])[1])
+	ys = (h - 2 * m) / (y1 - y0)
+	xs = (w - 2 * m) / (x1 - x0)
+
+	for x in range(0, x1 - x0,  5 * 60):
+		r += '<text x="%d" y="%d">-%dm</text>' % (w - m - xs * x,
+							h,
+							x / 60)
+	for i in range(y0, y1):
+		y = h - m - ys * (i - y0)
+		r += '<text x="%d" y="%d">%d</text>' % (0, y, i)
+		r += '<line x1="%d" y1="%d" x2="%d" y2="%d" ' % (m, y, w - m, y)
 		r += 'style="stroke:black;stroke-width:1"/>'
+
 	r += '<polyline style="fill:none;stroke:blue;stroke-width:2" points="'
-	for i in range(len(d)):
-		r += '%d,%d ' % (int(xs * i), int(h - ys * (d[i] - t0)))
+	r += " ".join(map(lambda xy: "%d,%d" % (m + xs * (xy[0] - x0), h - m - ys * (xy[1] - y0)), xy))
 	r += '">'
+
 	r += "</svg>"
 	return r
 
@@ -338,9 +345,9 @@ class http_serv:
 		r += "sk_cyc: %d, " % self.tstat.skip_cycle
 		r += "ts: %d</h3>" % (tstamp - time())
 
-		if len(self.mlog):
+		if len(self.mlog) > 1:
 			r += "<hr>"
-			r += plot_svg(self.mlog, 800, 400, self.cfg['avper'])
+			r += plot_svg(self.mlog, 800, 400)
 		r += "<body></html>"
 		return r
 
@@ -529,7 +536,7 @@ def main(cfg):
 		avn += 1
 		if time() - avstart >= avper:
 			avstart += avper
-			ml.append(avt / avn)
+			ml.append((time(), avt / avn))
 			while len(ml) > cfg["avn"]:
 				ml.pop(0)
 			avt, avn = 0, 0
