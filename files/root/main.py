@@ -64,12 +64,12 @@ class tstat:
 		self.off = 0
 
 	def tstat(self, t):
-		self.ns += 1
-		self.ts += t
-
 		if t < 0:
 			heat.set(0)
 			return
+
+		self.ns += 1
+		self.ts += t
 
 		if self.skip_cycle == 2 and t - self.temp >= -self.hyst:
 			self.skip_cycle = 1
