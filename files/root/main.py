@@ -460,6 +460,7 @@ Thermostat: <input type="number" step="0.1" name=ttemp>
 			con = None
 			try:
 				con, addr = sk.accept()
+				con.settimeout(1)
 				r = con.recv(1024)
 			except:
 				if con:
