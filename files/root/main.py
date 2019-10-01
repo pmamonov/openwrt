@@ -34,7 +34,18 @@ run = 1
 
 class gpio1(object):
 	def __init__(self, val):
-		self.val = val
+		if (type(val) is str):
+			self.val = val
+			return
+		gp = "/sys/class/gpio"
+		g = "%s/gpio%d" % (gp, val)
+		self.val = g + "/value"
+		self.dir = g + "/direction"
+		if not os.path.exists(self.val):
+			with open(gp + "/export", "w") as f:
+				f.write(str(val))
+		with open(self.dir, "w") as f:
+			f.write("out")
 
 	def get(self):
 		with open(self.val) as f:
