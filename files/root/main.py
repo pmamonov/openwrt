@@ -11,7 +11,7 @@ defaults = {
 	"ttemp" :	0.,
 	"thyst" :	0.1,
 	"heat" :	"/sys/class/gpio/relay1/value",
-	"rel2" :	"/sys/class/gpio/relay2/value",
+	"i2c_rst_gpio":	17,
 	"button" :	"/sys/class/gpio/button/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
@@ -257,19 +257,21 @@ def sdump(log, kk, sv):
 	log.write("\t".join(map(lambda k: str(sv[k]), kk)))
 	log.write("\n")
 
-def i2c_reset():
-	pass
-
-def watchdog():
-	global heat, tstamp
+def watchdog(heat, i2c_rst):
+	global tstamp
 	rep = 0
 	while run:
-		if time() - tstamp > 10:
+		if time() - tstamp > 5:
 			heat.set(0)
+
+			i2c_rst.set(1)
+			sleep(0.1)
+			i2c_rst.set(0)
+
 			if not rep:
 				sys.stderr.write(hts() + ": main thread hanged\n")
 				rep = 1
-				i2c_reset()
+
 		else:
 			if rep:
 				sys.stderr.write(hts() + ": main thread is running\n")
@@ -510,6 +512,9 @@ def main(cfg):
 
 	button = gpio1(cfg["button"])
 
+	i2c_rst = gpio1(cfg["i2c_rst_gpio"])
+	i2c_rst.set(0)
+
 	sens = {
 		"ta" : insysfs(cfg["temp_adt"], 1e-3, "Ta", "C", 2),
 		"th" : insysfs(cfg["temp_htu"], 1e-3, "Th", "C", 2),
@@ -537,7 +542,7 @@ def main(cfg):
 	http.start()
 
 
-	wdt = Thread(target = watchdog)
+	wdt = Thread(target = watchdog, args = (heat, i2c_rst))
 	wdt.start()
 
 	while run:
