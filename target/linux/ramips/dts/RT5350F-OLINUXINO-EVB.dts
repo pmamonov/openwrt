@@ -12,6 +12,12 @@
 		compatible = "gpio-export";
 		#size-cells = <0>;
 
+		i2c_rst {
+			gpio-export,name = "i2c_rst";
+			gpio-export,output = <0>;
+			gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+		};
+
 		relay1 {
 			gpio-export,name = "relay1";
 			gpio-export,output = <0>;
