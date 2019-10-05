@@ -11,7 +11,7 @@ defaults = {
 	"ttemp" :	0.,
 	"thyst" :	0.1,
 	"heat" :	"/sys/class/gpio/relay1/value",
-	"i2c_rst_gpio":	17,
+	"i2c_rst_gpio":	"/sys/class/gpio/i2c_rst/value",
 	"button" :	"/sys/class/gpio/button/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
