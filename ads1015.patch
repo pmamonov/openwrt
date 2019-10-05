@@ -1,0 +1,11 @@
+--- build_dir/target-mipsel_24kc_musl/linux-ramips_rt305x/linux-4.14.131/drivers/hwmon/ads1015.c.orig	2019-10-06 01:15:10.827337012 +0300
++++ build_dir/target-mipsel_24kc_musl/linux-ramips_rt305x/linux-4.14.131/drivers/hwmon/ads1015.c	2019-10-05 02:48:03.284552720 +0300
+@@ -145,7 +145,7 @@
+ 	if (res < 0)
+ 		return res;
+ 
+-	return sprintf(buf, "%d\n", ads1015_reg_to_mv(client, index, res));
++	return sprintf(buf, "%d\n", (s16)res);
+ }
+ 
+ static const struct sensor_device_attribute ads1015_in[] = {
