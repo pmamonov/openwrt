@@ -79,5 +79,11 @@
 	ads1115@49 {
 		compatible = "ti,ads1115";
 		reg = <0x49>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		channel@0 {
+			reg = <0>;
+			ti,gain = <5>;
+		};
 	};
 };
