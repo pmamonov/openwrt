@@ -110,6 +110,8 @@ class sensval:
 		self.prec = prec
 
 	def __str__(self):
+		if self.val is None:
+			return "-1"
 		fmt = "%." + str(self.prec) + "f"
 		return fmt % self.val
 
@@ -131,7 +133,7 @@ class sensor(object):
 			if not self.rep:
 				sys.stderr.write(": ".join((hts(), self.label, str(e))) + "\n")
 				self.rep = 1
-			v = -1
+			v = None
 
 		return sensval(v, self.label, self.units, self.prec)
 
@@ -550,15 +552,19 @@ def main(cfg):
 		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
 
-		avt += sv["th"].val
-		avn += 1
-		if time() - avstart >= avper:
-			avstart += avper
-			ml.append((time(), avt / avn))
-			while len(ml) > cfg["avn"]:
-				ml.pop(0)
-			avt, avn = 0, 0
-
+		try:
+			avt += sv[cfg["tsens"]].val
+			avn += 1
+			if time() - avstart >= avper:
+				avstart += avper
+				if avstart < time():
+					avstart = time() + avper
+				ml.append((time(), avt / avn))
+				while len(ml) > cfg["avn"]:
+					ml.pop(0)
+				avt, avn = 0, 0
+		except:
+			pass
 		if ttemp != ts.temp:
 			ts.set(ttemp)
 		ts.tstat(sv[cfg["tsens"]].val)
