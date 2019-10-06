@@ -8,6 +8,7 @@ from threading import Thread
 from traceback import print_stack
 
 defaults = {
+	"tsens"	:	"th",
 	"ttemp" :	0.,
 	"thyst" :	0.1,
 	"heat" :	"/sys/class/gpio/relay1/value",
@@ -560,7 +561,7 @@ def main(cfg):
 
 		if ttemp != ts.temp:
 			ts.set(ttemp)
-		ts.tstat(sv["th"].val)
+		ts.tstat(sv[cfg["tsens"]].val)
 		if button.get():
 			lcd.init()
 		lcd_upd(lcd, sv)
