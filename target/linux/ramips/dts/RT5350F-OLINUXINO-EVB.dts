@@ -40,15 +40,17 @@
 		compatible = "hit,hd44780";
 		display-height-chars = <4>;
 		display-width-chars = <20>;
-		rs-gpios = <&pcf8574 0 GPIO_ACTIVE_HIGH>;
-		rw-gpios = <&pcf8574 1 GPIO_ACTIVE_HIGH>;
-		enable-gpios = <&pcf8574 2 GPIO_ACTIVE_HIGH>;
-		backlight-gpios = <&pcf8574 3 GPIO_ACTIVE_HIGH>;
-		data-gpios = <&pcf8574 4 GPIO_ACTIVE_HIGH>,
-			     <&pcf8574 5 GPIO_ACTIVE_HIGH>,
-			     <&pcf8574 6 GPIO_ACTIVE_HIGH>,
-			     <&pcf8574 7 GPIO_ACTIVE_HIGH>;
+		rs-gpios = <&gpio0 7 GPIO_ACTIVE_HIGH>;		/* rts */
+		enable-gpios = <&gpio0 8 GPIO_ACTIVE_HIGH>;	/* txd */
+		data-gpios = <&gpio0 9 GPIO_ACTIVE_HIGH>,	/* cts */
+			     <&gpio0 10 GPIO_ACTIVE_HIGH>,	/* rxd */
+			     <&gpio0 11 GPIO_ACTIVE_HIGH>,	/* dtr */
+			     <&gpio0 13 GPIO_ACTIVE_HIGH>;	/* dsr */
 	};
+};
+
+&uart {
+	status = "disabled";
 };
 
 &i2c {
@@ -57,13 +59,6 @@
 	t6700@15 {
 		reg = <0x15>;
 		status = "disabled";
-	};
-
-	pcf8574: pcf8574@3f {
-		compatible = "nxp,pcf8574a";
-		reg = <0x3f>;
-		gpio-controller;
-		#gpio-cells = <2>;
 	};
 
 	htu21d@40 {

@@ -62,7 +62,7 @@
 		};
 		uartf_gpio {
 			ralink,group = "uartf";
-			ralink,function = "gpio uartf";
+			ralink,function = "gpio";
 		};
 	};
 };
