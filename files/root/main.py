@@ -233,7 +233,7 @@ def hts():
 def lcd_upd(lcd, sv):
 	if not lcd:
 		return
-	kk = ("ta", "co2", "rh", "o2")
+	kk = ("th", "co2", "rh", "o2")
 	lcd.home()
 	lcd.write(hts() + "\n")
 	l = 0
@@ -544,13 +544,14 @@ def main(cfg):
 	http = Thread(target = http.main)
 	http.start()
 
-
-	wdt = Thread(target = watchdog, args = (heat, i2c_rst))
-	wdt.start()
-
 	while run:
 		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
+
+		if (sv[cfg["tsens"]].val < 0):
+			i2c_rst.set(1)
+			sleep(0.1)
+			i2c_rst.set(0)
 
 		try:
 			avt += sv[cfg["tsens"]].val
