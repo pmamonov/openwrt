@@ -12,21 +12,69 @@
 		compatible = "gpio-export";
 		#size-cells = <0>;
 
+		button {
+			gpio-export,name = "button";
+			gpios = <&gpio0 0 GPIO_ACTIVE_LOW>;
+		};
+
 		i2c_rst {
 			gpio-export,name = "i2c_rst";
 			gpio-export,output = <0>;
 			gpios = <&gpio0 12 GPIO_ACTIVE_HIGH>;
 		};
 
-		relay1 {
-			gpio-export,name = "relay1";
+		heat {
+			gpio-export,name = "heat";
 			gpio-export,output = <0>;
 			gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
 		};
 
-		button {
-			gpio-export,name = "button";
-			gpios = <&gpio0 0 GPIO_ACTIVE_LOW>;
+		valve1 {
+			gpio-export,name = "valve1";
+			gpio-export,output = <0>;
+			gpios = <&gpio0 18 GPIO_ACTIVE_HIGH>;
+		};
+
+		valve2 {
+			gpio-export,name = "valve2";
+			gpio-export,output = <0>;
+			gpios = <&gpio0 19 GPIO_ACTIVE_HIGH>;
+		};
+
+		valve3 {
+			gpio-export,name = "valve3";
+			gpio-export,output = <0>;
+			gpios = <&gpio0 20 GPIO_ACTIVE_HIGH>;
+		};
+
+		valve4 {
+			gpio-export,name = "valve4";
+			gpio-export,output = <0>;
+			gpios = <&gpio0 17 GPIO_ACTIVE_HIGH>;
+		};
+
+		valve5 {
+			gpio-export,name = "valve5";
+			gpio-export,output = <0>;
+			gpios = <&gpio0 21 GPIO_ACTIVE_HIGH>;
+		};
+
+		pump {
+			gpio-export,name = "pump";
+			gpio-export,output = <0>;
+			gpios = <&gpio1 1 GPIO_ACTIVE_HIGH>;
+		};
+
+		fan {
+			gpio-export,name = "fan";
+			gpio-export,output = <0>;
+			gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
+		};
+
+		reserv {
+			gpio-export,name = "reserv";
+			gpio-export,output = <0>;
+			gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
 		};
 	};
 

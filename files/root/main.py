@@ -11,7 +11,7 @@ defaults = {
 	"tsens"	:	"ta",
 	"ttemp" :	0.,
 	"thyst" :	0.1,
-	"heat" :	"/sys/class/gpio/relay1/value",
+	"heat" :	"/sys/class/gpio/heat/value",
 	"i2c_rst_gpio":	"/sys/class/gpio/i2c_rst/value",
 	"button" :	"/sys/class/gpio/button/value",
 	"detach" :	0,
