@@ -8,7 +8,7 @@ from threading import Thread
 from traceback import print_stack
 
 defaults = {
-	"tsens"	:	"th",
+	"tsens"	:	"ta",
 	"ttemp" :	0.,
 	"thyst" :	0.1,
 	"heat" :	"/sys/class/gpio/relay1/value",
