@@ -233,7 +233,7 @@ def hts():
 def lcd_upd(lcd, sv):
 	if not lcd:
 		return
-	kk = ("th", "co2", "rh", "o2")
+	kk = ("ta", "co2", "rh", "o2")
 	lcd.home()
 	lcd.write(hts() + "\n")
 	l = 0
