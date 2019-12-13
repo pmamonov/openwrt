@@ -544,6 +544,7 @@ def main(cfg):
 	http = Thread(target = http.main)
 	http.start()
 
+	wake = time()
 	while run:
 		tstamp = time()
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
@@ -581,7 +582,12 @@ def main(cfg):
 			log = None
 		sdump(log, logk, sv)
 
-		sleep(1)
+		wake += 1
+		now = time()
+		if wake > now:
+			sleep(wake - now)
+		else:
+			wake = now
 	wdt.join(1)
 	http.join(1)
 
