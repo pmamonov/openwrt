@@ -522,7 +522,7 @@ def main(cfg):
 		"ta" : insysfs(cfg["temp_adt"], 1e-3, "Ta", "C", 2),
 		"th" : insysfs(cfg["temp_htu"], 1e-3, "Th", "C", 2),
 		"rh" : insysfs(cfg["rh_htu"], 1e-3, "RH", "%", 0),
-		"o2" : insysfs(cfg["o2"], 256. / 0x7fff, "O2", "mV", 2),
+		"o2" : insysfs(cfg["o2"], 20.8 * 256. / 0x7fff / 11.8, "O2", "%", 1),
 		"co2" : t6700(cfg["co2_bus"], cfg["co2_addr"]),
 	}
 
