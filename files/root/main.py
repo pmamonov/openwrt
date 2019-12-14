@@ -570,8 +570,6 @@ def main(cfg):
 		if ttemp != ts.temp:
 			ts.set(ttemp)
 		ts.tstat(sv[cfg["tsens"]].val)
-		if button.get():
-			lcd.init()
 		lcd_upd(lcd, sv)
 
 		if log_en and not log and cfg["logfn"]:
