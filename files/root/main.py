@@ -117,6 +117,7 @@ class tstat:
 		r += "Thyst: %.2f, " % self.hyst
 		r += "Tav: %.2f, " % self.av
 		r += "Toff: %.2f, " % self.off
+		r += "cyc: %d, " % self.cycle
 		r += "sk_cyc: %d" % self.skip_cycle
 		return r
 
