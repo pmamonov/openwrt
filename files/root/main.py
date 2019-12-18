@@ -66,6 +66,7 @@ class tstat:
 		self.av = 0
 		self.st = hyst * 0.1
 		self.cycle = 0
+		self.tnow = -1
 		self.set(temp)
 
 	def set(self, t):
@@ -74,6 +75,7 @@ class tstat:
 			self.skip_cycle = 1
 		self.temp = t
 		self.off = 0
+		sys.stderr.write(hts() + (": TS0: %s\n" % self))
 
 	def tstat(self, t):
 		if t < 0:
@@ -82,9 +84,11 @@ class tstat:
 
 		self.ns += 1
 		self.ts += t
+		self.tnow = t
 
 		if self.skip_cycle == 2 and t - self.temp >= -self.hyst:
 			self.skip_cycle = 1
+			sys.stderr.write(hts() + (": TS1: %s\n" % self))
 
 		if t + self.off - self.temp <= -self.hyst and not self.heat.get() and self.cycle:
 			self.cycle = 0
@@ -93,14 +97,29 @@ class tstat:
 			self.ts = 0.
 			if not self.skip_cycle:
 				self.off += self.av - self.temp
+			sys.stderr.write(hts() + (": TS2: %s\n" % self))
 
 		if t + self.off - self.temp <= -self.hyst and not self.heat.get():
 			self.heat.set(1)
 			self.cycle = 1
 			if self.skip_cycle:
 				self.skip_cycle -= 1
+			sys.stderr.write(hts() + (": TS3: %s\n" % self))
+
 		if t + self.off - self.temp >= 0 and self.heat.get():
 			self.heat.set(0)
+			sys.stderr.write(hts() + (": TS4: %s\n" % self))
+
+	def __str__(self):
+		r = "Thermostat: %.2fC, " % self.temp
+		r += "T: %.2fC, " % self.tnow
+		r += "Heat: %d, " % self.heat.get()
+		r += "Thyst: %.2f, " % self.hyst
+		r += "Tav: %.2f, " % self.av
+		r += "Toff: %.2f, " % self.off
+		r += "sk_cyc: %d" % self.skip_cycle
+		return r
+
 
 class sensval:
 	def __init__(self, val, label, units, prec):
@@ -353,13 +372,8 @@ class http_serv:
 			r += "N/A"
 
 		r += "</td></tr></table>"
-		r += "<h3>Thermostat: %.1fC, " % ttemp
-		r += "Heat: %d, " % heat.get()
-		r += "Thyst: %.2f, " % self.tstat.hyst
-		r += "Tav: %.2f, " % self.tstat.av
-		r += "Toff: %.2f, " % self.tstat.off
-		r += "sk_cyc: %d, " % self.tstat.skip_cycle
-		r += "ts: %d</h3>" % (tstamp - time())
+
+		r += "<h3>%s, ts: %d</h3>" % (self.tstat, tstamp - time())
 
 		if len(self.mlog) > 1:
 			r += "<hr>"
