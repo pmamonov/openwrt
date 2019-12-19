@@ -59,6 +59,7 @@ class gpio1(object):
 class tstat:
 	def __init__(self, heat, temp, hyst):
 		self.heat = heat
+		self.heat_state = self.heat.get()
 		self.hyst = hyst
 		self.off = 0
 		self.ts = 0
@@ -71,16 +72,27 @@ class tstat:
 
 	def set(self, t):
 		self.skip_cycle = 2
-		if self.heat.get():
+		if self.heat_state:
 			self.skip_cycle = 1
 		self.temp = t
 		self.off = 0
 		sys.stderr.write(hts() + (": TS0: %s\n" % self))
 
+	def heat_on(self):
+		self.heat_state = 1
+		self.heat.set(1)
+
+	def heat_off(self):
+		self.heat_state = 0
+		self.heat.set(0)
+
 	def tstat(self, t):
 		if t < 0:
-			heat.set(0)
+			self.heat.set(0)
 			return
+
+		if self.heat_state != self.heat.get():
+			self.heat.set(self.heat_state)
 
 		self.ns += 1
 		self.ts += t
@@ -90,7 +102,7 @@ class tstat:
 			self.skip_cycle = 1
 			sys.stderr.write(hts() + (": TS1: %s\n" % self))
 
-		if t + self.off - self.temp <= -self.hyst and not self.heat.get() and self.cycle:
+		if t + self.off - self.temp <= -self.hyst and not self.heat_state and self.cycle:
 			self.cycle = 0
 			self.av = self.ts / self.ns
 			self.ns = 0
@@ -99,21 +111,21 @@ class tstat:
 				self.off += self.av - self.temp
 			sys.stderr.write(hts() + (": TS2: %s\n" % self))
 
-		if t + self.off - self.temp <= -self.hyst and not self.heat.get():
-			self.heat.set(1)
+		if t + self.off - self.temp <= -self.hyst and not self.heat_state:
+			self.heat_on()
 			self.cycle = 1
 			if self.skip_cycle:
 				self.skip_cycle -= 1
 			sys.stderr.write(hts() + (": TS3: %s\n" % self))
 
-		if t + self.off - self.temp >= 0 and self.heat.get():
-			self.heat.set(0)
+		if t + self.off - self.temp >= 0 and self.heat_state:
+			self.heat_off()
 			sys.stderr.write(hts() + (": TS4: %s\n" % self))
 
 	def __str__(self):
 		r = "Thermostat: %.2fC, " % self.temp
 		r += "T: %.2fC, " % self.tnow
-		r += "Heat: %d, " % self.heat.get()
+		r += "Heat: %d(%d), " % (self.heat.get(), self.heat_state)
 		r += "Thyst: %.2f, " % self.hyst
 		r += "Tav: %.2f, " % self.av
 		r += "Toff: %.2f, " % self.off
