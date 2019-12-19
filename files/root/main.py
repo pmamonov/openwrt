@@ -11,6 +11,7 @@ defaults = {
 	"tsens"	:	"ta",
 	"ttemp" :	0.,
 	"thyst" :	0.1,
+	"toff_max" :	1.,
 	"heat" :	"/sys/class/gpio/heat/value",
 	"i2c_rst_gpio":	"/sys/class/gpio/i2c_rst/value",
 	"button" :	"/sys/class/gpio/button/value",
@@ -57,10 +58,11 @@ class gpio1(object):
 			f.write("1" if v else "0")
 
 class tstat:
-	def __init__(self, heat, temp, hyst):
+	def __init__(self, heat, temp, hyst, off_max):
 		self.heat = heat
 		self.heat_state = self.heat.get()
 		self.hyst = hyst
+		self.off_max = off_max
 		self.off = 0
 		self.ts = 0
 		self.ns = 0
@@ -109,6 +111,10 @@ class tstat:
 			self.ts = 0.
 			if not self.skip_cycle:
 				self.off += self.av - self.temp
+				if self.off > self.off_max:
+					self.off = self.off_max
+				elif self.off < -self.off_max:
+					self.off = -self.off_max
 			sys.stderr.write(hts() + (": TS2: %s\n" % self))
 
 		if t + self.off - self.temp <= -self.hyst and not self.heat_state:
@@ -555,7 +561,7 @@ def main(cfg):
 
 	ttemp = cfg["ttemp"]
 	thyst = cfg["thyst"]
-	ts = tstat(heat, ttemp, thyst)
+	ts = tstat(heat, ttemp, thyst, cfg["toff_max"])
 
 	log_en = 0
 	log = None
