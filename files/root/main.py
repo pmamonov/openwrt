@@ -15,6 +15,8 @@ defaults = {
 	"heat" :	"/sys/class/gpio/heat/value",
 	"i2c_rst_gpio":	"/sys/class/gpio/i2c_rst/value",
 	"button" :	"/sys/class/gpio/button/value",
+	"o2_v1" :	"/sys/class/gpio/valve1/value",
+	"o2_v2" :	"/sys/class/gpio/valve2/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
 	"errfn" :	"/tmp/main.err",
@@ -357,9 +359,10 @@ def plot_svg(xy, w, h):
 	return r
 
 class http_serv:
-	def __init__(self, cfg, ts, mlog):
+	def __init__(self, cfg, ts, mlog, ost):
 		self.cfg = cfg
 		self.tstat = ts
+		self.ostat = ost
 		self.mlog = mlog
 
 	def http_frame(self):
@@ -414,6 +417,11 @@ class http_serv:
 				log_en = int(w[1])
 			except:
 				pass
+		elif w[0] == "ostat":
+			try:
+				self.ostat.set(float(w[1]))
+			except:
+				pass
 		elif w[0] == "threads":
 			dump_threads()
 
@@ -428,6 +436,11 @@ class http_serv:
 		r += '''
 <form action="/ctl" method="get" style="font-size: 150%">
 Thermostat: <input type="number" step="0.1" name=ttemp>
+<input type="submit" value="OK">
+</form>'''
+		r += '''
+<form action="/ctl" method="get" style="font-size: 150%">
+O2: <input type="number" step="0.1" name=ostat>
 <input type="submit" value="OK">
 </form>'''
 		r += '<table><tr><td><h3><a href="/sens.csv" target="_blank">Download sensors data</a></h3></td>'
@@ -537,6 +550,26 @@ Thermostat: <input type="number" step="0.1" name=ttemp>
 			con.close()
 		sk.close()
 
+class ostat:
+	def __init__(self, v1, v2):
+		self.v1 = v1
+		self.v2 = v2
+		self.set(0)
+
+	def set(self, o2):
+		self.target = o2
+		sys.stderr.write("%s: OST: target %.1f\n" % (hts(), self.target))
+
+	def ostat(self, o2):
+		if o2 is None:
+			sys.stderr.write(hts() + ": OST: O2 sensor failed!\n")
+			return
+		self.v1.set(0)
+		self.v2.set(0)
+		sys.stderr.write("%s: OST: O2 %.1f, target %.1f, v1 %d, v2 %d\n" %
+					(hts(), o2, self.target,
+					 self.v1.get(), self.v2.get()))
+
 def main(cfg):
 	global ttemp, thyst, heat, tstamp, sv, log_en, log
 
@@ -563,6 +596,10 @@ def main(cfg):
 	thyst = cfg["thyst"]
 	ts = tstat(heat, ttemp, thyst, cfg["toff_max"])
 
+	o2_v1 = gpio1(cfg["o2_v1"])
+	o2_v2 = gpio1(cfg["o2_v2"])
+	ost = ostat(o2_v1, o2_v2)
+
 	log_en = 0
 	log = None
 	logk = sens.keys()
@@ -573,7 +610,7 @@ def main(cfg):
 	avstart = time()
 	ml = []
 
-	http = http_serv(cfg, ts, ml)
+	http = http_serv(cfg, ts, ml, ost)
 	http = Thread(target = http.main)
 	http.start()
 
@@ -600,6 +637,9 @@ def main(cfg):
 				avt, avn = 0, 0
 		except:
 			pass
+
+		ost.ostat(sv["o2"].val)
+
 		if ttemp != ts.temp:
 			ts.set(ttemp)
 		ts.tstat(sv[cfg["tsens"]].val)
