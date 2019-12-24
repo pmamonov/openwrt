@@ -15,8 +15,8 @@ defaults = {
 	"heat" :	"/sys/class/gpio/heat/value",
 	"i2c_rst_gpio":	"/sys/class/gpio/i2c_rst/value",
 	"button" :	"/sys/class/gpio/button/value",
-	"o2_v1" :	"/sys/class/gpio/valve1/value",
-	"o2_v2" :	"/sys/class/gpio/valve2/value",
+	"o2_v1" :	"/sys/class/gpio/valve3/value",
+	"o2_v2" :	"/sys/class/gpio/valve4/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
 	"errfn" :	"/tmp/main.err",
@@ -393,14 +393,16 @@ class http_serv:
 		else:
 			r += "N/A"
 
-		r += "</td></tr></table>"
+		r += "</td></tr></table>\n"
 
-		r += "<h3>%s, ts: %d</h3>" % (self.tstat, tstamp - time())
+		r += "<h3>%s, ts: %d</h3>\n" % (self.tstat, tstamp - time())
+		
+                r += "<h3>%s</h3>\n" % (self.ostat) 
 
 		if len(self.mlog) > 1:
 			r += "<hr>"
 			r += plot_svg(self.mlog, 800, 400)
-		r += "<body></html>"
+		r += "\n</body></html>"
 		return r
 
 	def http_cmd(self, a):
@@ -550,25 +552,85 @@ O2: <input type="number" step="0.1" name=ostat>
 			con.close()
 		sk.close()
 
+# ostat - Oxystat class
 class ostat:
-	def __init__(self, v1, v2):
-		self.v1 = v1
-		self.v2 = v2
-		self.set(0)
 
-	def set(self, o2):
-		self.target = o2
-		sys.stderr.write("%s: OST: target %.1f\n" % (hts(), self.target))
+    # v1 - Oxygen increase valve
+    # v2 - Oxygen decrease valve
+    def __init__(self, v1, v2):
+        self.v1 = v1
+        self.v2 = v2
+        self.set(-1)
+        self.THRESHOLD_O2_UPPER = 0.5
+        self.THRESHOLD_O2_LOWER = 0.2
+        self.n2_fill_Flag = None
 
-	def ostat(self, o2):
-		if o2 is None:
-			sys.stderr.write(hts() + ": OST: O2 sensor failed!\n")
-			return
-		self.v1.set(0)
-		self.v2.set(0)
-		sys.stderr.write("%s: OST: O2 %.1f, target %.1f, v1 %d, v2 %d\n" %
-					(hts(), o2, self.target,
-					 self.v1.get(), self.v2.get()))
+    def set(self, o2):
+        self.target = o2
+        sys.stderr.write("%s: OST: target %.1f\n" % (hts(), self.target))
+        if o2 == -1:
+            sys.stderr.write("%s: OXYstat - unset\n" % (hts()) )
+            self.n2_fill_Flag = None
+            self.stamp = time()
+
+    def ostat(self, o2):
+        # oxystat is unset
+        if self.target == -1:
+            self.v1.set(0)
+            self.v2.set(0)
+            return
+
+        _dtime = (time() - self.stamp) % 30
+
+        if o2 is None:
+            sys.stderr.write(hts() + ": OST: O2 sensor failed!\n")
+            return
+
+        if (o2 > self.target):
+            if (o2 - self.target) > self.THRESHOLD_O2_UPPER/2:
+                self.o2_fill(0)
+            if (o2 - self.target) > self.THRESHOLD_O2_UPPER:
+                self.n2_fill(1)
+
+        if (o2 < self.target):
+            self.n2_fill(0)
+            if (self.target - o2) > self.THRESHOLD_O2_LOWER:
+                self.o2_fill(1)
+        
+        if _dtime < 2 + 5*(o2-self.target) and self.n2_fill_Flag:
+            self.v2.set(1)
+        else:
+            self.v2.set(0)
+
+        if self.o2_fill_Flag:
+            self.v1.set(1)
+        else:
+            self.v1.set(0)
+
+
+        sys.stderr.write("%s: OST: O2 %.1f, target %.1f, dtime: %d, v1 %d, v2 %d, OF: %d, NF: %d\n" %
+                    (hts(), o2, self.target, _dtime, self.v1.get(), self.v2.get(), \
+                            self.o2_fill_Flag, self.n2_fill_Flag) )
+
+    def n2_fill(self, _flag):
+        self.n2_fill_Flag = _flag
+        if _flag:
+            self.o2_fill_Flag = 0
+
+    def o2_fill(self, _flag):
+        self.o2_fill_Flag = _flag
+        if _flag:
+            self.n2_fill_Flag = 0
+
+
+    def __str__(self):
+        r = ""
+        if self.target != -1:
+            r += "Oxystat: %.2f%%, N2: %d" % \
+                (self.target, self.n2_fill_Flag )
+        else:
+            r += "Oxystat: N/S"
+        return r
 
 def main(cfg):
 	global ttemp, thyst, heat, tstamp, sv, log_en, log
