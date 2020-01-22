@@ -17,6 +17,7 @@ defaults = {
 	"button" :	"/sys/class/gpio/button/value",
 	"o2_v1" :	"/sys/class/gpio/valve1/value",
 	"o2_v2" :	"/sys/class/gpio/valve2/value",
+	"pump" :	"/sys/class/gpio/valve5/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
 	"errfn" :	"/tmp/main.err",
@@ -359,10 +360,11 @@ def plot_svg(xy, w, h):
 	return r
 
 class http_serv:
-	def __init__(self, cfg, ts, mlog, ost):
+	def __init__(self, cfg, ts, mlog, ost, pump):
 		self.cfg = cfg
 		self.tstat = ts
 		self.ostat = ost
+		self.pump = pump
 		self.mlog = mlog
 
 	def http_frame(self):
@@ -426,6 +428,11 @@ class http_serv:
 				pass
 		elif w[0] == "threads":
 			dump_threads()
+		elif w[0] == "pump":
+			try:
+				self.pump.set(int(w[1]))
+			except:
+				pass
 
 	def http_ctl(self, args):
 		global log_en
@@ -445,6 +452,16 @@ Thermostat: <input type="number" step="0.1" name=ttemp>
 O2: <input type="number" step="0.1" name=ostat>
 <input type="submit" value="OK">
 </form>'''
+		r += '''
+<table><tr><td><h3>Pump:</h3></td>
+<td><form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="pump" value="1">
+<input type="submit" value="ON" {on}></form></td>
+<td><form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="pump" value="0">
+<input type="submit" value="OFF" {off}></form></td></tr></table>
+'''.format(on = "disabled" if self.pump.get() else "",
+	   off = "" if self.pump.get() else "disabled")
 		r += '<table><tr><td><h3><a href="/sens.csv" target="_blank">Download sensors data</a></h3></td>'
 		if log_en:
 			r += '''<td>
@@ -662,6 +679,8 @@ def main(cfg):
 	o2_v2 = gpio1(cfg["o2_v2"])
 	ost = ostat(o2_v1, o2_v2)
 
+	pump = gpio1(cfg["pump"])
+
 	log_en = 0
 	log = None
 	logk = sens.keys()
@@ -672,7 +691,7 @@ def main(cfg):
 	avstart = time()
 	ml = []
 
-	http = http_serv(cfg, ts, ml, ost)
+	http = http_serv(cfg, ts, ml, ost, pump)
 	http = Thread(target = http.main)
 	http.start()
 
