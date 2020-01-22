@@ -17,6 +17,8 @@ defaults = {
 	"button" :	"/sys/class/gpio/button/value",
 	"o2_v1" :	"/sys/class/gpio/valve1/value",
 	"o2_v2" :	"/sys/class/gpio/valve2/value",
+	"ads1" :	"/sys/class/gpio/valve3/value",
+	"ads2" :	"/sys/class/gpio/valve4/value",
 	"pump" :	"/sys/class/gpio/valve5/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
@@ -59,6 +61,20 @@ class gpio1(object):
 	def set(self, v):
 		with open(self.val, "w") as f:
 			f.write("1" if v else "0")
+
+class adsorber:
+	def __init__(self, a1, a2):
+		self.a1, self.a2 = a1, a2
+		self.state = 0
+		self.set(self.state)
+
+	def get(self):
+		return self.state
+
+	def set(self, v):
+		self.state = 1 if v else 0
+		self.a1.set(self.state)
+		self.a2.set(not self.state)
 
 class tstat:
 	def __init__(self, heat, temp, hyst, off_max):
@@ -360,11 +376,12 @@ def plot_svg(xy, w, h):
 	return r
 
 class http_serv:
-	def __init__(self, cfg, ts, mlog, ost, pump):
+	def __init__(self, cfg, ts, mlog, ost, pump, ads):
 		self.cfg = cfg
 		self.tstat = ts
 		self.ostat = ost
 		self.pump = pump
+		self.ads = ads
 		self.mlog = mlog
 
 	def http_frame(self):
@@ -433,6 +450,11 @@ class http_serv:
 				self.pump.set(int(w[1]))
 			except:
 				pass
+		elif w[0] == "ads":
+			try:
+				self.ads.set(int(w[1]))
+			except:
+				pass
 
 	def http_ctl(self, args):
 		global log_en
@@ -462,6 +484,16 @@ O2: <input type="number" step="0.1" name=ostat>
 <input type="submit" value="OFF" {off}></form></td></tr></table>
 '''.format(on = "disabled" if self.pump.get() else "",
 	   off = "" if self.pump.get() else "disabled")
+		r += '''
+<table><tr><td><h3>Adsorber:</h3></td>
+<td><form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="ads" value="1">
+<input type="submit" value="ON" {on}></form></td>
+<td><form action="/ctl" method="get" style="font-size: 150%">
+<input type="hidden" name="ads" value="0">
+<input type="submit" value="OFF" {off}></form></td></tr></table>
+'''.format(on = "disabled" if self.ads.get() else "",
+	   off = "" if self.ads.get() else "disabled")
 		r += '<table><tr><td><h3><a href="/sens.csv" target="_blank">Download sensors data</a></h3></td>'
 		if log_en:
 			r += '''<td>
@@ -681,6 +713,8 @@ def main(cfg):
 
 	pump = gpio1(cfg["pump"])
 
+	ads = adsorber(gpio1(cfg["ads1"]), gpio1(cfg["ads2"]))
+
 	log_en = 0
 	log = None
 	logk = sens.keys()
@@ -691,7 +725,7 @@ def main(cfg):
 	avstart = time()
 	ml = []
 
-	http = http_serv(cfg, ts, ml, ost, pump)
+	http = http_serv(cfg, ts, ml, ost, pump, ads)
 	http = Thread(target = http.main)
 	http.start()
 
