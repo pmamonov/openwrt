@@ -473,7 +473,7 @@ class http_serv:
 		r = '<html><body bgcolor="#faf296">'
 		r += '''
 <form action="/ctl" method="get" style="font-size: 150%">
-Date: <input type="text" name=date>
+Date: <input type="text" name="date" size="20" value="" id="fieldForDate">
 <input type="submit" value="OK"> Ex.: 2020-01-31 07:40
 </form>'''
 		r += '''
@@ -532,6 +532,14 @@ O2: <input type="number" step="0.1" name=ostat>
 <input type="hidden" name="threads" value="1">
 <input type="submit" value="Dump threads"></td>
 </tr></form>'''
+                r += '''<script type="text/javascript">
+var currentdate = new Date();
+var datetime = currentdate.getFullYear() + "-" + currentdate.getMonth() 
++ "-" + currentdate.getDay() + " " 
++ currentdate.getHours() + ":" 
++ currentdate.getMinutes() + ":" + currentdate.getSeconds();
+document.getElementById("fieldForDate").value = datetime;
+</script>'''
 		r += "</body></html>"
 		return r
 
