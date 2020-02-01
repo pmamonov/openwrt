@@ -631,9 +631,10 @@ class ostat:
 
     def set(self, o2):
         self.target = o2
-        sys.stderr.write("%s: OST: target %.1f\n" % (hts(), self.target))
-        if o2 == -1:
-            sys.stderr.write("%s: OXYstat - unset\n" % (hts()) )
+        if o2 != -1:
+             sys.stderr.write("%s: OST: target %.1f\n" % (hts(), self.target))
+        else:
+            sys.stderr.write("%s: OST: unset\n" % (hts()) )
             self.n2_fill_Flag = None
             self.stamp = time()
 
@@ -700,24 +701,37 @@ class ostat:
         if not self.o2_fill_Flag and not self.n2_fill_Flag:
             self.o2v.set(0)
             self.n2v.set(0)
-
-
-        if self.target != -1:
-            sys.stderr.write("%s: OST: O2 %.1f, target %.1f, dtime: %d/%d, o2v %d, n2v %d, OF: %d, NF: %d\n" %
-                        (hts(), o2 if haveValue else -1, self.target, _dtime, \
-                           self.off_dtime, self.o2v.get(), self.n2v.get(), \
-                           -1 if self.o2_fill_Flag is None else self.o2_fill_Flag, \
-                           -1 if self.n2_fill_Flag is None else self.n2_fill_Flag) )
+        
+        # debug output
+        # TODO: remove after finalization
+        if self.target != -1 and (_dtime % 5 == 0):
+            self.errStamp('DBG', o2, dt)
 
     def n2_fill(self, _flag):
-        self.n2_fill_Flag = _flag
         if _flag:
             self.o2_fill_Flag = 0
+        if self.n2_fill_Flag != _flag:
+            self.errFill(_flag, self.o2_fill_Flag)
+        self.n2_fill_Flag = _flag
 
     def o2_fill(self, _flag):
-        self.o2_fill_Flag = _flag
         if _flag:
             self.n2_fill_Flag = 0
+        if self.o2_fill_Flag != _flag:
+            self.errFill(self.n2_fill_Flag, _flag)
+        self.o2_fill_Flag = _flag
+
+    def errFill(self, _n2, _o2):
+        sys.stderr.write("%s: OST: turn N2 %s, turn O2 %s\n" % \
+                hts(), "on" if _n2 else "off", "on" if _o2 else "off")
+
+    def errStamp(self, ws, o2, dt):
+        sys.stderr.write("%s: %3s: O2 %.1f, target %.1f, dtime: %d/%d, o2v %d, n2v %d, OF: %d, NF: %d\n" %
+                    (ws, hts(), o2 if haveValue else -1, self.target, dt, \
+                        self.off_dtime, self.o2v.get(), self.n2v.get(), \
+                        -1 if self.o2_fill_Flag is None else self.o2_fill_Flag, \
+                        -1 if self.n2_fill_Flag is None else self.n2_fill_Flag) )
+        pass
 
 
     def __str__(self):
