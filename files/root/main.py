@@ -455,6 +455,11 @@ class http_serv:
 				self.ads.set(int(w[1]))
 			except:
 				pass
+		elif w[0] == "date":
+			dt = w[1].replace("+", " ").replace("%3A", ":")
+			rc = os.system("date -s '%s' &> /dev/null" % dt)
+			if rc == 0:
+				sys.stderr.write(hts() + ": TIME UPDATED\n")
 
 	def http_ctl(self, args):
 		global log_en
@@ -464,6 +469,11 @@ class http_serv:
 					self.http_cmd(a)
 
 		r = '<html><body bgcolor="#faf296">'
+		r += '''
+<form action="/ctl" method="get" style="font-size: 150%">
+Date: <input type="text" name=date>
+<input type="submit" value="OK"> Ex.: 2020-01-31 07:40
+</form>'''
 		r += '''
 <form action="/ctl" method="get" style="font-size: 150%">
 Thermostat: <input type="number" step="0.1" name=ttemp>
