@@ -285,7 +285,7 @@ def daemonize(errfn):
         sys.stderr = open(errfn, "w", 0)
 
 def hts():
-    return strftime("%Y-%m-%d %H:%M:%S")
+    return strftime("%y-%m-%d %H:%M:%S")
 
 def lcd_upd(lcd, sv):
     if not lcd:
