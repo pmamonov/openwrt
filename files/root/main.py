@@ -620,9 +620,12 @@ class ostat:
         self.v1 = v1
         self.v2 = v2
         self.set(-1)
-        self.THRESHOLD_O2_UPPER = 0.5
+        self.THRESHOLD_O2_UPPER = 0.3
         self.THRESHOLD_O2_LOWER = 0.2
+        self.off_dtime = 0
         self.n2_fill_Flag = None
+        self.o2_fill_Flag = None
+        self.o2_history = []
 
     def set(self, o2):
         self.target = o2
@@ -633,43 +636,76 @@ class ostat:
             self.stamp = time()
 
     def ostat(self, o2):
+        finishFlag = False
+        haveValue = True # whether we can trust the value
+        if o2 > 1 and not (o2 is None):
+            if len(self.o2_history) < 5:
+                self.o2_history.append(o2)
+            else:
+                omean = sum(self.o2_history)/5.
+                if abs(o2 - omean) < 0.5:
+                    self.o2_history = self.o2_history[1:] + [o2]
+                else:
+                    sys.stderr.write(hts() + ": OST: O2 value failed - %.1f!\n" % o2)
+                    o2 = self.o2_history[-1] # getting previous solid one
+        else:
+            sys.stderr.write(hts() + ": OST: O2 sensor failed!\n")
+            finishFlag = False
+            haveValue = False
+
         # oxystat is unset
         if self.target == -1:
             self.v1.set(0)
             self.v2.set(0)
-            return
+            finishFlag = True
 
         _dtime = (time() - self.stamp) % 30
 
-        if o2 is None:
-            sys.stderr.write(hts() + ": OST: O2 sensor failed!\n")
+        if finishFlag:
             return
 
-        if (o2 > self.target):
-            if (o2 - self.target) > self.THRESHOLD_O2_UPPER/2:
-                self.o2_fill(0)
-            if (o2 - self.target) > self.THRESHOLD_O2_UPPER:
-                self.n2_fill(1)
-
-        if (o2 < self.target):
+        if not haveValue and (self.n2_fill_Flag is None or self.o2_fill_Flag is None):
             self.n2_fill(0)
-            if (self.target - o2) > self.THRESHOLD_O2_LOWER:
-                self.o2_fill(1)
-        
-        if _dtime < 2 + 5*(o2-self.target) and self.n2_fill_Flag:
-            self.v2.set(1)
-        else:
-            self.v2.set(0)
+            self.o2_fill(0)
+
+        if haveValue:
+            if (o2 > self.target):
+                if (o2 - self.target) > self.THRESHOLD_O2_UPPER/2:
+                    self.o2_fill(0)
+                if (o2 - self.target) > self.THRESHOLD_O2_UPPER:
+                    self.n2_fill(1)
+
+            if (o2 < self.target):
+                self.n2_fill(0)
+                if (self.target - o2) > self.THRESHOLD_O2_LOWER:
+                    self.o2_fill(1)
+
+            self.off_dtime = 50./self.target + 5*(o2-self.target)
+ 
+        if self.n2_fill_Flag:
+            if _dtime < self.off_dtime:
+                self.v2.set(1)
+                self.v1.set(1)
+            else:
+                self.v2.set(0)
+                self.v1.set(0)
+
 
         if self.o2_fill_Flag:
             self.v1.set(1)
-        else:
+            self.v2.set(0)
+
+        if not self.o2_fill_Flag and not self.n2_fill_Flag:
             self.v1.set(0)
+            self.v2.set(0)
 
 
-        sys.stderr.write("%s: OST: O2 %.1f, target %.1f, dtime: %d, v1 %d, v2 %d, OF: %d, NF: %d\n" %
-                    (hts(), o2, self.target, _dtime, self.v1.get(), self.v2.get(), \
-                            self.o2_fill_Flag, self.n2_fill_Flag) )
+        if self.target != -1:
+            sys.stderr.write("%s: OST: O2 %.1f, target %.1f, dtime: %d/%d, v1 %d, v2 %d, OF: %d, NF: %d\n" %
+                        (hts(), o2 if haveValue else -1, self.target, _dtime, \
+                           self.off_dtime, self.v1.get(), self.v2.get(), \
+                           -1 if self.o2_fill_Flag is None else self.o2_fill_Flag, \
+                           -1 if self.n2_fill_Flag is None else self.n2_fill_Flag) )
 
     def n2_fill(self, _flag):
         self.n2_fill_Flag = _flag
@@ -685,8 +721,10 @@ class ostat:
     def __str__(self):
         r = ""
         if self.target != -1:
-            r += "Oxystat: %.2f%%, N2: %d" % \
-                (self.target, self.n2_fill_Flag )
+            n2f = -1 if self.n2_fill_Flag is None else self.n2_fill_Flag
+            o2f = -1 if self.o2_fill_Flag is None else self.o2_fill_Flag
+            r += "Oxystat: %.2f%%, N2: %d, O2: %d" % \
+                (self.target, n2f, o2f )
         else:
             r += "Oxystat: N/S"
         return r
