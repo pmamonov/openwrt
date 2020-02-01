@@ -38,6 +38,7 @@ defaults = {
 }
 
 run = 1
+time_changed = 0
 
 class gpio1(object):
 	def __init__(self, val):
@@ -425,7 +426,7 @@ class http_serv:
 		return r
 
 	def http_cmd(self, a):
-		global ttemp, log_en
+		global ttemp, log_en, time_changed
 
 		w = a.split("=")
 		if w[0] == "ttemp":
@@ -460,6 +461,7 @@ class http_serv:
 			rc = os.system("date -s '%s' &> /dev/null" % dt)
 			if rc == 0:
 				sys.stderr.write(hts() + ": TIME UPDATED\n")
+				time_changed = 1
 
 	def http_ctl(self, args):
 		global log_en
@@ -730,7 +732,7 @@ class ostat:
         return r
 
 def main(cfg):
-	global ttemp, thyst, heat, tstamp, sv, log_en, log
+	global ttemp, thyst, heat, tstamp, sv, log_en, log, time_changed
 
 	sv = None
 
@@ -780,6 +782,11 @@ def main(cfg):
 	wake = time()
 	while run:
 		tstamp = time()
+
+		if time_changed:
+			del ml[:]
+			time_changed = 0
+
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
 
 		if (sv[cfg["tsens"]].val < 0):
