@@ -15,8 +15,8 @@ defaults = {
 	"heat" :	"/sys/class/gpio/heat/value",
 	"i2c_rst_gpio":	"/sys/class/gpio/i2c_rst/value",
 	"button" :	"/sys/class/gpio/button/value",
-	"o2_v1" :	"/sys/class/gpio/valve2/value",
-	"o2_v2" :	"/sys/class/gpio/valve1/value",
+	"o2_v" :	"/sys/class/gpio/valve2/value",
+	"n2_v" :	"/sys/class/gpio/valve1/value",
 	"ads1" :	"/sys/class/gpio/valve4/value",
 	"ads2" :	"/sys/class/gpio/valve3/value",
 	"pump" :	"/sys/class/gpio/valve5/value",
@@ -614,11 +614,11 @@ O2: <input type="number" step="0.1" name=ostat>
 # ostat - Oxystat class
 class ostat:
 
-    # v1 - Oxygen increase valve
-    # v2 - Oxygen decrease valve
-    def __init__(self, v1, v2):
-        self.v1 = v1
-        self.v2 = v2
+    # o2iv - Oxygen increase valve
+    # n2iv - Oxygen decrease valve
+    def __init__(self, o2iv, n2iv):
+        self.o2v = o2iv
+        self.n2v = n2iv
         self.set(-1)
         self.THRESHOLD_O2_UPPER = 0.3
         self.THRESHOLD_O2_LOWER = 0.2
@@ -655,8 +655,8 @@ class ostat:
 
         # oxystat is unset
         if self.target == -1:
-            self.v1.set(0)
-            self.v2.set(0)
+            self.o2v.set(0)
+            self.n2v.set(0)
             finishFlag = True
 
         _dtime = (time() - self.stamp) % 30
@@ -684,26 +684,26 @@ class ostat:
  
         if self.n2_fill_Flag:
             if _dtime < self.off_dtime:
-                self.v2.set(1)
-                self.v1.set(1)
+                self.n2v.set(1)
+                self.o2v.set(1)
             else:
-                self.v2.set(0)
-                self.v1.set(0)
+                self.n2v.set(0)
+                self.o2v.set(0)
 
 
         if self.o2_fill_Flag:
-            self.v1.set(1)
-            self.v2.set(0)
+            self.o2v.set(1)
+            self.n2v.set(0)
 
         if not self.o2_fill_Flag and not self.n2_fill_Flag:
-            self.v1.set(0)
-            self.v2.set(0)
+            self.o2v.set(0)
+            self.n2v.set(0)
 
 
         if self.target != -1:
-            sys.stderr.write("%s: OST: O2 %.1f, target %.1f, dtime: %d/%d, v1 %d, v2 %d, OF: %d, NF: %d\n" %
+            sys.stderr.write("%s: OST: O2 %.1f, target %.1f, dtime: %d/%d, o2v %d, n2v %d, OF: %d, NF: %d\n" %
                         (hts(), o2 if haveValue else -1, self.target, _dtime, \
-                           self.off_dtime, self.v1.get(), self.v2.get(), \
+                           self.off_dtime, self.o2v.get(), self.n2v.get(), \
                            -1 if self.o2_fill_Flag is None else self.o2_fill_Flag, \
                            -1 if self.n2_fill_Flag is None else self.n2_fill_Flag) )
 
@@ -755,9 +755,9 @@ def main(cfg):
 	thyst = cfg["thyst"]
 	ts = tstat(heat, ttemp, thyst, cfg["toff_max"])
 
-	o2_v1 = gpio1(cfg["o2_v1"])
-	o2_v2 = gpio1(cfg["o2_v2"])
-	ost = ostat(o2_v1, o2_v2)
+	cfg_o2_v = gpio1(cfg["o2_v"])
+	cfg_n2_v = gpio1(cfg["n2_v"])
+	ost = ostat(cfg_o2_v, cfg_n2_v)
 
 	pump = gpio1(cfg["pump"])
 
