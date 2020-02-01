@@ -8,17 +8,17 @@ from threading import Thread
 from traceback import print_stack
 
 defaults = {
-	"tsens"	:	"ta",
+	"tsens"	:	"th",
 	"ttemp" :	0.,
 	"thyst" :	0.1,
 	"toff_max" :	1.,
 	"heat" :	"/sys/class/gpio/heat/value",
 	"i2c_rst_gpio":	"/sys/class/gpio/i2c_rst/value",
 	"button" :	"/sys/class/gpio/button/value",
-	"o2_v1" :	"/sys/class/gpio/valve1/value",
-	"o2_v2" :	"/sys/class/gpio/valve2/value",
-	"ads1" :	"/sys/class/gpio/valve3/value",
-	"ads2" :	"/sys/class/gpio/valve4/value",
+	"o2_v1" :	"/sys/class/gpio/valve2/value",
+	"o2_v2" :	"/sys/class/gpio/valve1/value",
+	"ads1" :	"/sys/class/gpio/valve4/value",
+	"ads2" :	"/sys/class/gpio/valve3/value",
 	"pump" :	"/sys/class/gpio/valve5/value",
 	"detach" :	0,
 	"pidfn" :	"/tmp/main.pid",
@@ -290,7 +290,7 @@ def hts():
 def lcd_upd(lcd, sv):
 	if not lcd:
 		return
-	kk = ("ta", "co2", "rh", "o2")
+	kk = ("th", "co2", "rh", "o2")
 	lcd.home()
 	lcd.write(hts() + "\n")
 	l = 0
