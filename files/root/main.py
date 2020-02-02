@@ -852,7 +852,6 @@ def main(cfg):
 			sleep(wake - now)
 		else:
 			wake = now
-	wdt.join(1)
 	http.join(1)
 
 def parse_cmdline(cfg):
