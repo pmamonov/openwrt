@@ -616,6 +616,8 @@ document.getElementById("fieldForDate").value = datetime;
 				if type(log) is file:
 					log.flush()
 				self.sendfile(self.cfg["logfn"])
+			if p == "/err":
+				self.sendfile(self.cfg["errfn"], fmt="text/plain")
 			else:
 				self.html(p, w[1] if len(w) > 1 else None)
 			con.close()
