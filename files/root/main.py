@@ -534,10 +534,10 @@ O2: <input type="number" step="0.1" name=ostat>
 </tr></form>'''
                 r += '''<script type="text/javascript">
 var currentdate = new Date();
-var datetime = currentdate.getFullYear() + "-" + currentdate.getMonth() 
-+ "-" + currentdate.getDay() + " " 
+var datetime = currentdate.getFullYear() + "-" + (1 + currentdate.getMonth())
++ "-" + currentdate.getDate() + " "
 + currentdate.getHours() + ":" 
-+ currentdate.getMinutes() + ":" + currentdate.getSeconds();
++ currentdate.getMinutes();
 document.getElementById("fieldForDate").value = datetime;
 </script>'''
 		r += "</body></html>"
