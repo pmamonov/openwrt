@@ -807,6 +807,7 @@ def main(cfg):
 
 		if time_changed:
 			del ml[:]
+			wake = time()
 			time_changed = 0
 
 		sv = dict(map(lambda k: (k, sens[k].read()), sens.keys()))
