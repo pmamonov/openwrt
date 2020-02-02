@@ -537,7 +537,7 @@ var currentdate = new Date();
 var datetime = currentdate.getFullYear() + "-" + (1 + currentdate.getMonth())
 + "-" + currentdate.getDate() + " "
 + currentdate.getHours() + ":" 
-+ currentdate.getMinutes();
++ currentdate.getMinutes() + ":" + currentdate.getSeconds();
 document.getElementById("fieldForDate").value = datetime;
 </script>'''
 		r += "</body></html>"
