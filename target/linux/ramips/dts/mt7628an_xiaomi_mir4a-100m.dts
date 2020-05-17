@@ -95,9 +95,9 @@
 				read-only;
 			};
 
-			partition@160000 {
+			partition@260000 {
 				label = "firmware";
-				reg = <0x160000 0xea0000>;
+				reg = <0x260000 0xda0000>;
 				compatible = "denx,uimage";
 			};
 		};
