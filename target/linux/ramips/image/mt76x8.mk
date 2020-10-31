@@ -137,6 +137,7 @@ endef
 TARGET_DEVICES += iptime_a604m
 
 define Device/mediatek_linkit-smart-7688
+  $(Device/uimage-lzma-loader)
   IMAGE_SIZE := 32448k
   DEVICE_VENDOR := MediaTek
   DEVICE_MODEL := LinkIt Smart 7688
